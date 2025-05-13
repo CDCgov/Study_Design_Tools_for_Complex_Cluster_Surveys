@@ -65,9 +65,11 @@ where:
 * $`r`$ anticipated non-response rate, from 0 to 1, p.112, 128
 
 ### Formulas
-Effective Sample Size (ESS) $`n_{ESS}`$:\
-$$n_{ESS} \ge \frac{k z^2_{1-\alpha/2}}{4d^2} + \frac{1}{d} - 
-2z^2_{1-\alpha/2} + \frac{z^2_{1-\alpha/2}+2}{k}$$
+Effective Sample Size (ESS) $`n_{ESS}`$:
+```math
+n_{ESS} \ge \frac{k z^2_{1-\alpha/2}}{4d^2} + \frac{1}{d} - 
+2z^2_{1-\alpha/2} + \frac{z^2_{1-\alpha/2}+2}{k}
+```
 where  
 * $`z^2_{1-x}`$ is the standard normal distribution evaluated at $`1-x`$
 
@@ -81,21 +83,27 @@ and $`k`$ is found from the following table:
 | $`0.7 \lt p \le 1-d`$ | $`k = 4(p-d)(1-p+d)`$ |
 | $`1-d \lt p \le 1`$   | $`k = 8d(1-2d)`$ |
 
-Design Effect, $`F_{DE}`$:\
-$$F_{DE} = [(1+icc(m-1)][1+cv^2]$$  
+Design Effect, $`F_{DE}`$:
+```math
+F_{DE} = [(1+icc(m-1)][1+cv^2]
+```
 
-Inflation factor due to non-response $`F_{Inflation}`$:\
-$$F_{Inflation} = \frac{r}{1-r}$$  
+Inflation factor due to non-response $`F_{Inflation}`$:
+```math
+F_{Inflation} = \frac{r}{1-r}
+```
 
-Confidence Interval (half-width):\
+Confidence Interval (half-width):
 ```math
 d = \min_{d\in(0,1)}\begin{vmatrix}   n_{ESS} - \frac{k z^2_{1-\alpha/2}}{4d^2} - \frac{1}{d} + 2z^2_{1-\alpha/2} - \frac{z^2_{1-\alpha/2}+2}{k} \\\end{vmatrix}
 ```  
 
-Sample Size, $`n`$:\
-$$n = Ceiling\lparen n_{ESS} \times F_{DE} \times F_{Inflation} \rparen$$  
+Sample Size, $`n`$:
+```math
+n = Ceiling\lparen n_{ESS} \times F_{DE} \times F_{Inflation} \rparen
+```
 
-Number of clusters, $`n_{Clust}`$:\
+Number of clusters, $`n_{Clust}`$:
 ```math
 n_{Clust} = Ceiling\begin{pmatrix}   \frac{n}{m} \\\end{pmatrix}
 ```
