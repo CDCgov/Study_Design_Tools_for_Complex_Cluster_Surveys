@@ -1,4 +1,9 @@
 
+
+#
+# Estimation
+#
+
 # Each input can be a single number or a list of numbers.
 # Note that a data.frame is output with number of rows equal to
 #   the product of the lengths of the input lists ... so it can get
@@ -41,3 +46,31 @@ dOutput = function(n,p,m,icc=1/6,cv=0.50,r,alpha=0.05){
     )
   val
 } 
+
+
+
+
+
+
+#
+# Classification
+#
+
+nclOutTab = function(P0,delta,alpha,beta,direction,m,icc,cv,r){
+  dir = tolower(direction)
+  # Only do either above or below but not both in the same table
+  if(!dir %in% c('above','below'))stop("direction must be either 'above' or 'below' (case-insensitive). This function only allows for creating an output table for one or the other 'above' or 'below' but not both.")
+  val=expand.grid(P0,delta,alpha,beta,m,icc,cv,r)
+  colnames(val) = c("P0","delta","alpha","beta","m","icc","cv","r")
+  val$ess=apply(val[,c("P0","delta","alpha","beta")],1,function(x)ESScl(x[1],x[2],x[3],x[4],dir))
+  val$deff=DE(val$m,icc=val$icc,cv=val$cv)
+  val$inf=INF(val$r)
+  val$n = ceiling(val$ess * val$deff * val$inf)
+  val$nc = ceiling(val$n / val$m)
+  colnames(val) = c(
+    "P0","delta","alpha","beta","m","icc","cv","r",
+    "ess(P0,delta,alpha,beta,direction)","deff(m,icc,cv)","inf(r)",
+    "n(ess,deff,inf)","nc(n,m)"
+  )
+  list(Table=val, direction=dir)
+}
