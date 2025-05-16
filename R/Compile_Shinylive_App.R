@@ -1,5 +1,5 @@
 
-setwd("C:/Users/JNN6/OneDrive - CDC/GitHub/cluster_survey_sample_size/R")
+setwd("C:/Users/JNN6/OneDrive - CDC/GitHub/Study_Design_Tools_for_Complex_Cluster_Surveys/R")
 
 # Check that it runs properly on local machine
 shiny::runApp()
