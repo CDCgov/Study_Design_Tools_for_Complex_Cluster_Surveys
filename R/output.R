@@ -19,7 +19,7 @@
 nOutTab = function(d,p,m,icc=1/6,cv=0.50,r,alpha=0.05){
   val=expand.grid(p,d,alpha,m,icc,cv,r)
   colnames(val) = c("p","d","alpha","m","icc","cv","r")
-  val$ess=apply(val[,c("d","p")],1,function(x)ESS(x[2],x[1]))
+  val$ess=apply(val[,c("d","p","alpha")],1,function(x)ESS(x[2],x[1],x[3]))
   val$deff=DE(val$m,icc=val$icc,cv=val$cv)
   val$inf=INF(val$r)
   val$n = ceiling(val$ess * val$deff * val$inf)

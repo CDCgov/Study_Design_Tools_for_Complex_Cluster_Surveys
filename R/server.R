@@ -14,13 +14,14 @@ numeric_input_is_valid = function(x){
 
 # Take the string input, convert to numeric. Handles fractions.
 convert_numeric_input = function(x,nm){
+  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
   x = trimws(strsplit(x,",")[[1]])
   input_is_ok = all(numeric_input_is_valid(x))
   if(input_is_ok){
     val = rep(0,length(x))
     for(i in 1:length(x)){
       if(grepl("/",x[i])){
-        val[i] = as.numeric(eval(parse(text=x)))
+        val[i] = as.numeric(eval(parse(text=x[i])))
       } else {
         val[i] = as.numeric(x[i])
       }
@@ -32,18 +33,32 @@ convert_numeric_input = function(x,nm){
 }
 
 # Provide feedback on improper inputs
-observe_inputs = function(x,nm){
+feedback_on_input = function(x,nm){
+  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
   x = trimws(strsplit(x,",")[[1]])
   input_is_ok = all(numeric_input_is_valid(x))
   shinyFeedback::feedbackDanger(nm, !input_is_ok, "invalid input, see error message")
 }
+give_feedback_on_inputs = function(input){
+  i_nm = c("d","p","m","icc","cv","r","alpha")
+  for(k in i_nm)feedback_on_input(input[[k]],k)
+}
 
 # Makes table of sample sizes for Estimation studies
 make_Est_SS_Tab = function(input){
+  if(input$estimation_n_or_d == "Sample size"){
     i_nm = c("d","p","m","icc","cv","r","alpha")
-	i = reactiveValues()
-	for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-    nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+    i = reactiveValues()
+    for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+    val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+  }
+  if(input$estimation_n_or_d == "Half-width CI"){
+    i_nm = c("n","p","m","icc","cv","r","alpha")
+    i = reactiveValues()
+    for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+    val = dOutput(i$n,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+  }
+  val
 }
 
 
@@ -52,23 +67,187 @@ source("functions.R")
 source("output.R")
 
 server <- function(input, output, session) {
-
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$d,"d")})
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$p,"p")})
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$m,"m")})
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$icc,"icc")})
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$cv,"cv")})
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$r,"r")})
-  observeEvent(input$Btn_Est_SS,{observe_inputs(input$alpha,"alpha")})
-
-  # Update table on button click
-  updated_data = eventReactive(input$Btn_Est_SS, {
-    make_Est_SS_Tab(input)
+  output$dev <- renderPrint({
+    print(input$estimation_n_or_d)
+#          x.gran = 10 # granularity of the plot lines
+#      i_nm = c("d","p","m","icc","cv","r","alpha")
+#      i = reactiveValues()
+#      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+#      print(seq(min(i$d),max(i$d),length.out=x.gran))
+#      i$dLst = seq(min(i$d),max(i$d),length.out=x.gran)
+#      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+#      print(head(dat,23))
   })
+  
+  # React when selecting SS or CI
+  n_or_d = reactive({input$estimation_n_or_d})
+
+  # Give feedback on inputs
+  observeEvent(1,{give_feedback_on_inputs(input)})
+
+  # Create display table
   output$ESSdf = renderTable({
-    updated_data()
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
+      val = make_Est_SS_Tab(input)
+    }
+    if(which_n_or_d == "Half-width CI"){
+      val = make_Est_SS_Tab(input)
+    }
+    val
   }, striped=TRUE
   )
+
+
+#  # Render UI for plots dynamically
+#  output$plotsUI <- renderUI({
+#    
+#    dat = make_Est_SS_Tab(input)
+#    g = unique(dat[,c("m","icc","cv","r","alpha")])
+#    plot_output_list <- lapply(1:nrow(g), function(i) {
+#      plotOutput(outputId = paste0("plot", i))
+#    })
+#    do.call(tagList, plot_output_list)
+#  })
+#  
+#  # Generate plots dynamically
+#  observe({
+#    dat = make_Est_SS_Tab(input)
+#    g = unique(dat[,c("m","icc","cv","r","alpha")])
+#    x.gran = 10 # granularity of the plot lines
+#    for (i in 1:nrow(g)) {
+#      local({
+#        ii <- i
+#        output[[paste0("plot", ii)]] <- renderPlot({
+#
+#        n = seq(min(dat$n),max(dat$n),length.out=x.gran)
+#        d = dOutput(n,unique(dat$p),g$m[ii],g$icc[ii],g$cv[ii],g$r[ii],g$alpha[ii])
+#        d$p = as.factor(d$p)
+#        tit = paste0("m = ",g$m[ii]," , ","icc = ",g$icc[ii]," , ","cv = ",g$cv[ii]," , ","r = ",g$r[ii]," , ","alpha = ",g$alpha[ii])        
+#        ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = p, group = p)) +
+#          ggplot2::geom_line(size = 1) +
+#          ggplot2::labs(title = tit, x = "Sample Size", y = "CI Half-Width") +
+#          ggplot2::theme_minimal()
+##        plot(d$n,d$d,main=tit)
+#
+#        })
+#      })
+#    }
+#  })
+  
+
+
+  output$plot1 = renderPlot({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
+      x.gran = 10 # granularity of the plot lines
+      i_nm = c("d","p","m","icc","cv","r","alpha")
+      i = reactiveValues()
+      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+      i$dLst = seq(min(i$d),max(i$d),length.out=x.gran)
+      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat$p = as.factor(dat$p)
+      ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+        ggplot2::labs(title = "Sample Size as a function of CI Half-Width", y = "Sample Size", x = "CI Half-Width") +
+        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
+    }
+  })
+  output$plot2 = renderPlot({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
+      x.gran = 10 # granularity of the plot lines
+      i_nm = c("d","p","m","icc","cv","r","alpha")
+      i = reactiveValues()
+      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+      i$pLst = seq(min(i$p),max(i$p),length.out=x.gran)
+      dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alpha)
+      ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
+        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+        ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
+        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
+    }
+  })
+  
+  output$plot = renderPlot({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Half-width CI"){
+      x.gran = 10 # granularity of the plot lines
+      i_nm = c("n","p","m","icc","cv","r","alpha")
+      i = reactiveValues()
+      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+      i$nLst = seq(min(i$n),max(i$n),length.out=x.gran)
+      dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat$p = as.factor(dat$p)
+      ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+        ggplot2::labs(title = "CI Half-Width as a function of Sample Size", x = "Sample Size", y = "CI Half-Width") +
+        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
+
+    }
+  })
+  
+  
+  output$statement_message = renderText({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
+      v = make_Est_SS_Tab(input)[1,]
+      val = paste0("
+        Using the first row of the table as an example:\n
+        With an expected coverage proportion of ",v$p,",
+        a desired half-width CI of ",v$d,", 
+        and a Type I error rate of ",v$alpha,", 
+        the effective sample size is ",v$ess,".\n
+        With an intracluster correlation coefficient of ",v$icc,", 
+        a coefficient of variation of sample weights of ",v$cv,",
+        and setting the target number of respondents per cluster at ",v$m," 
+        results in a design effect of ",v$deff,".\n
+        With this effective sample size, design effect and an anticipated non-response rate of ",v$r,"
+        we have a required sample size of ",v["n(ess,deff,inf)"],".\n
+        Combining sample size cluster size, we see we need ",v$nc," clusters."
+      )
+    }
+    if(which_n_or_d == "Half-width CI"){
+      v = make_Est_SS_Tab(input)[1,]
+      val = paste0("
+        Using the first row of the table as an example:\n
+        Having an expected coverage proportion of ",v$p,",
+        a target number of respondents per cluster of ",v$m,", 
+        an intracluster correlation coefficient of ",v$icc,", 
+        a coefficient of variation of sample weights of ",v$cv,",
+        an anticipated non-response rate of ",v$r,",
+        a Type I error rate of ",v$alpha,", 
+        and setting the study's sample size at ",v$n," 
+        results in a half-width CI of ",v$d
+      )
+    }
+    val
+  })
+  
+#  # Create display plots
+#  output$plot = renderPlot({
+#    which_n_or_d = n_or_d()
+#    dat = make_Est_SS_Tab(input)
+#    if(which_n_or_d == "Sample size"){
+#      
+#    }
+#    if(which_n_or_d == "Half-width CI"){
+#
+#      x.gran = 10 # granularity of the plot lines
+#      g = unique(dat[,c("m","icc","cv","r","alpha")])
+#      for(i in 1:nrow(g)){
+#        n = seq(min(dat$n),max(dat$n),length.out=x.gran)
+#        d = dOutput(n,unique(dat$p),g$m[i],g$icc[i],g$cv[i],g$r[i],g$alpha[i])
+#        d$p = as.factor(d$p)
+#        tit = paste0("m = ",g$m[i]," , ","icc = ",g$icc[i]," , ","cv = ",g$cv[i]," , ","r = ",g$r[i]," , ","alpha = ",g$alpha[i])        
+#        val = ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = p, group = p)) +
+#          ggplot2::geom_line(size = 1) +
+#          ggplot2::labs(title = tit, x = "Sample Size", y = "CI Half-Width") +
+#          ggplot2::theme_minimal()
+#        print(val)
+#      }
+#    }
+#  })
   
   # Download
   EstSSOutTab = reactive({make_Est_SS_Tab(input)})
