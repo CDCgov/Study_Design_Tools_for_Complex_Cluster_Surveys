@@ -69,6 +69,14 @@ source("output.R")
 server <- function(input, output, session) {
   output$dev <- renderPrint({
     print(input$estimation_n_or_d)
+#          x.gran = 10 # granularity of the plot lines
+#      i_nm = c("d","p","m","icc","cv","r","alpha")
+#      i = reactiveValues()
+#      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+#      print(seq(min(i$d),max(i$d),length.out=x.gran))
+#      i$dLst = seq(min(i$d),max(i$d),length.out=x.gran)
+#      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+#      print(head(dat,23))
   })
   
   # React when selecting SS or CI
@@ -127,25 +135,93 @@ server <- function(input, output, session) {
 #    }
 #  })
   
-  
-  
-output$plot = renderPlot({
-    which_n_or_d = n_or_d()
-    dat = make_Est_SS_Tab(input)
-    if(which_n_or_d == "Sample size"){
-      
-    }
-    if(which_n_or_d == "Half-width CI"){
 
+
+  output$plot1 = renderPlot({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
       x.gran = 10 # granularity of the plot lines
-      d = dat
-      d$p = as.factor(d$p)
-      ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) +
+      i_nm = c("d","p","m","icc","cv","r","alpha")
+      i = reactiveValues()
+      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+      i$dLst = seq(min(i$d),max(i$d),length.out=x.gran)
+      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat$p = as.factor(dat$p)
+      ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+        ggplot2::labs(title = "Sample Size as a function of CI Half-Width", y = "Sample Size", x = "CI Half-Width") +
+        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
+    }
+  })
+  output$plot2 = renderPlot({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
+      x.gran = 10 # granularity of the plot lines
+      i_nm = c("d","p","m","icc","cv","r","alpha")
+      i = reactiveValues()
+      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+      i$pLst = seq(min(i$p),max(i$p),length.out=x.gran)
+      dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alpha)
+      ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
+        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+        ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
+        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
+    }
+  })
+  
+  output$plot = renderPlot({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Half-width CI"){
+      x.gran = 10 # granularity of the plot lines
+      i_nm = c("n","p","m","icc","cv","r","alpha")
+      i = reactiveValues()
+      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
+      i$nLst = seq(min(i$n),max(i$n),length.out=x.gran)
+      dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat$p = as.factor(dat$p)
+      ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
         ggplot2::labs(title = "CI Half-Width as a function of Sample Size", x = "Sample Size", y = "CI Half-Width") +
         ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
 
     }
+  })
+  
+  
+  output$statement_message = renderText({
+    which_n_or_d = n_or_d()
+    if(which_n_or_d == "Sample size"){
+      v = make_Est_SS_Tab(input)[1,]
+      val = paste0("
+        Using the first row of the table as an example:\n
+        With an expected coverage proportion of ",v$p,",
+        a desired half-width CI of ",v$d,", 
+        and a Type I error rate of ",v$alpha,", 
+        the effective sample size is ",v$ess,".\n
+        With an intracluster correlation coefficient of ",v$icc,", 
+        a coefficient of variation of sample weights of ",v$cv,",
+        and setting the target number of respondents per cluster at ",v$m," 
+        results in a design effect of ",v$deff,".\n
+        With this effective sample size, design effect and an anticipated non-response rate of ",v$r,"
+        we have a required sample size of ",v["n(ess,deff,inf)"],".\n
+        Combining sample size cluster size, we see we need ",v$nc," clusters."
+      )
+    }
+    if(which_n_or_d == "Half-width CI"){
+      v = make_Est_SS_Tab(input)[1,]
+      val = paste0("
+        Using the first row of the table as an example:\n
+        Having an expected coverage proportion of ",v$p,",
+        a target number of respondents per cluster of ",v$m,", 
+        an intracluster correlation coefficient of ",v$icc,", 
+        a coefficient of variation of sample weights of ",v$cv,",
+        an anticipated non-response rate of ",v$r,",
+        a Type I error rate of ",v$alpha,", 
+        and setting the study's sample size at ",v$n," 
+        results in a half-width CI of ",v$d
+      )
+    }
+    val
   })
   
 #  # Create display plots

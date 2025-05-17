@@ -71,11 +71,19 @@ ui <- function(request){fluidPage(
         fluidRow(tableOutput("ESSdf"))
       ),
       tabPanel("Plots",
-        plotOutput("plot")#,
-#        uiOutput("plotsUI")
+        conditionalPanel(
+          condition = "input.estimation_n_or_d == 'Sample size'",
+          plotOutput("plot1"),
+          plotOutput("plot2")
+        ),
+        conditionalPanel(
+          condition = "input.estimation_n_or_d == 'Half-width CI'",
+          plotOutput("plot")#,
+#          uiOutput("plotsUI")
+        )
       ),
       tabPanel("Statement",
-        p("Description of results suitable for a manuscript or report.")
+        verbatimTextOutput("statement_message")
       )
     ))
 	
