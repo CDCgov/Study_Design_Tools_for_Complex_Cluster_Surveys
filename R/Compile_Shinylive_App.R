@@ -1,5 +1,5 @@
 
-setwd("C:/Users/JNN6/OneDrive - CDC/GitHub/Study_Design_Tools_for_Complex_Cluster_Surveys/R")
+setwd("C:/GitHub/Study_Design_Tools_for_Complex_Cluster_Surveys/R")
 
 # Check that it runs properly on local machine
 shiny::runApp()
@@ -9,3 +9,8 @@ shinylive::export(appdir = getwd(), destdir = "../docs")
 
 # Check that the serverless web app works properly
 httpuv::runStaticServer("../docs")
+
+
+a = "0.05, 0.10"
+b = c("0.05" , "0.025")
+paste(b,collapse=", ")

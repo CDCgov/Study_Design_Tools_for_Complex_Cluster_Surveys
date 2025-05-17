@@ -14,6 +14,7 @@ numeric_input_is_valid = function(x){
 
 # Take the string input, convert to numeric. Handles fractions.
 convert_numeric_input = function(x,nm){
+  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
   x = trimws(strsplit(x,",")[[1]])
   input_is_ok = all(numeric_input_is_valid(x))
   if(input_is_ok){
@@ -42,6 +43,7 @@ observe_inputs = function(x,nm){
 make_Est_SS_Tab = function(input){
     i_nm = c("d","p","m","icc","cv","r","alpha")
 	i = reactiveValues()
+#	i[["alpha"]] = paste(i[["alpha"]], collapse=", ")
 	for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
     nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
 }
@@ -52,6 +54,11 @@ source("functions.R")
 source("output.R")
 
 server <- function(input, output, session) {
+  output$summary <- renderPrint({
+    print(input$d)
+	print(input$alpha)
+	print(paste(input$alpha,collapse=", "))
+  })
 
   observeEvent(input$Btn_Est_SS,{observe_inputs(input$d,"d")})
   observeEvent(input$Btn_Est_SS,{observe_inputs(input$p,"p")})
