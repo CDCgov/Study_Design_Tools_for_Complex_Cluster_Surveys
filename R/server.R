@@ -69,14 +69,6 @@ source("output.R")
 server <- function(input, output, session) {
   output$dev <- renderPrint({
     print(input$estimation_n_or_d)
-#          x.gran = 10 # granularity of the plot lines
-#      i_nm = c("d","p","m","icc","cv","r","alpha")
-#      i = reactiveValues()
-#      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-#      print(seq(min(i$d),max(i$d),length.out=x.gran))
-#      i$dLst = seq(min(i$d),max(i$d),length.out=x.gran)
-#      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
-#      print(head(dat,23))
   })
   
   # React when selecting SS or CI
@@ -99,42 +91,6 @@ server <- function(input, output, session) {
   )
 
 
-#  # Render UI for plots dynamically
-#  output$plotsUI <- renderUI({
-#    
-#    dat = make_Est_SS_Tab(input)
-#    g = unique(dat[,c("m","icc","cv","r","alpha")])
-#    plot_output_list <- lapply(1:nrow(g), function(i) {
-#      plotOutput(outputId = paste0("plot", i))
-#    })
-#    do.call(tagList, plot_output_list)
-#  })
-#  
-#  # Generate plots dynamically
-#  observe({
-#    dat = make_Est_SS_Tab(input)
-#    g = unique(dat[,c("m","icc","cv","r","alpha")])
-#    x.gran = 10 # granularity of the plot lines
-#    for (i in 1:nrow(g)) {
-#      local({
-#        ii <- i
-#        output[[paste0("plot", ii)]] <- renderPlot({
-#
-#        n = seq(min(dat$n),max(dat$n),length.out=x.gran)
-#        d = dOutput(n,unique(dat$p),g$m[ii],g$icc[ii],g$cv[ii],g$r[ii],g$alpha[ii])
-#        d$p = as.factor(d$p)
-#        tit = paste0("m = ",g$m[ii]," , ","icc = ",g$icc[ii]," , ","cv = ",g$cv[ii]," , ","r = ",g$r[ii]," , ","alpha = ",g$alpha[ii])        
-#        ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = p, group = p)) +
-#          ggplot2::geom_line(size = 1) +
-#          ggplot2::labs(title = tit, x = "Sample Size", y = "CI Half-Width") +
-#          ggplot2::theme_minimal()
-##        plot(d$n,d$d,main=tit)
-#
-#        })
-#      })
-#    }
-#  })
-  
 
 
   output$plot1 = renderPlot({
@@ -224,30 +180,6 @@ server <- function(input, output, session) {
     val
   })
   
-#  # Create display plots
-#  output$plot = renderPlot({
-#    which_n_or_d = n_or_d()
-#    dat = make_Est_SS_Tab(input)
-#    if(which_n_or_d == "Sample size"){
-#      
-#    }
-#    if(which_n_or_d == "Half-width CI"){
-#
-#      x.gran = 10 # granularity of the plot lines
-#      g = unique(dat[,c("m","icc","cv","r","alpha")])
-#      for(i in 1:nrow(g)){
-#        n = seq(min(dat$n),max(dat$n),length.out=x.gran)
-#        d = dOutput(n,unique(dat$p),g$m[i],g$icc[i],g$cv[i],g$r[i],g$alpha[i])
-#        d$p = as.factor(d$p)
-#        tit = paste0("m = ",g$m[i]," , ","icc = ",g$icc[i]," , ","cv = ",g$cv[i]," , ","r = ",g$r[i]," , ","alpha = ",g$alpha[i])        
-#        val = ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = p, group = p)) +
-#          ggplot2::geom_line(size = 1) +
-#          ggplot2::labs(title = tit, x = "Sample Size", y = "CI Half-Width") +
-#          ggplot2::theme_minimal()
-#        print(val)
-#      }
-#    }
-#  })
   
   # Download
   EstSSOutTab = reactive({make_Est_SS_Tab(input)})
