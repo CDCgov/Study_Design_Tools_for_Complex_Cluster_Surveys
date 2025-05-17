@@ -10,6 +10,8 @@ downloadButton <- function(...) {
 
 
 ui <- function(request){fluidPage(
+
+  fluidRow( #main
   
   title = "Cluster Survey Sample Size",
    
@@ -20,32 +22,27 @@ ui <- function(request){fluidPage(
   sidebarLayout(
 
     sidebarPanel(p("Select a Study Type:"),tabsetPanel(id="Input_Panel",
- 
-# 	  selectInput(inputId = "study_type",
-#                  label = "Choose a Study Type:",
-#                  choices = c("Estimation", "Classification", "Comparison")),
 
 	  # Estimation
       tabPanel("Estimation",
         condition = "input.study_type == 'Estimation'",
-		selectInput(inputId = "estimation_n_or_d",label="Solve for:",choices=c("Sample size","Half-width CI")),
-		helpText("Enter comma-separated values, then click 'Update View'"),
-		conditionalPanel(
-		  condition = "input.estimation_n_or_d == 'Sample size'",
-          actionButton("Btn_Est_SS","Update View", icon("refresh")),
+		    selectInput(inputId = "estimation_n_or_d",label="Solve for:",choices=c("Sample size","Half-width CI")),
+		    helpText("Enter comma-separated values, then click 'Update View'"),
+    conditionalPanel(
+		      condition = "input.estimation_n_or_d == 'Sample size'",
+#         actionButton("Btn_Est_SS","Update View", icon("refresh")),
           textInput('d', 'Desired half-width CI', "0.05, 0.10")
-		 ),
+		),
 		conditionalPanel(
 		  condition = "input.estimation_n_or_d == 'Half-width CI'",
-          actionButton("Btn_Est_CI","Update View", icon("refresh")),
+#          actionButton("Btn_Est_CI","Update View", icon("refresh")),
           textInput('n', 'Sample size', "300, 900"),
-		 ),
+		),
         textInput('p', 'Expected coverage proportion', "0.10, 0.25"),
         textInput('m', 'Target number of respondents per cluster', "5, 15"),
         textInput('icc', 'intracluster correlation coefficient', "1/22, 1/6"),
         textInput('cv', 'Coefficient of variation of sample weights', "0.50"),
         textInput('r', 'Anticipated non-response rate, from 0 to 1', "0.15"),
-#        textInput('alpha', 'Type I error rate; usually 0.05 for 95% CI', "0.05")
         selectInput('alpha', 'Type I error rate; usually 0.05 for 95% CI', c("0.025","0.05","0.10"), "0.05",TRUE)
 
       ),
@@ -65,15 +62,28 @@ ui <- function(request){fluidPage(
     )),
 
     # Main panel
-    mainPanel(
-	  verbatimTextOutput("summary"),
-	  # Bookmark feature not currently supported in Shinylive
-      #fluidRow(downloadButton("ESSdfDownload","Download"), bookmarkButton()),
-	  fluidRow(downloadButton("ESSdfDownload","Download")),
-      fluidRow(tableOutput("ESSdf"))
-    )
+    mainPanel(tabsetPanel(
+      tabPanel("Table",
+	      verbatimTextOutput("dev"),
+	      # Bookmark feature not currently supported in Shinylive
+        #fluidRow(downloadButton("ESSdfDownload","Download"), bookmarkButton()),
+	      fluidRow(downloadButton("ESSdfDownload","Download")),
+        fluidRow(tableOutput("ESSdf"))
+      ),
+      tabPanel("Plots",
+        plotOutput("plot")#,
+#        uiOutput("plotsUI")
+      ),
+      tabPanel("Statement",
+        p("Description of results suitable for a manuscript or report.")
+      )
+    ))
 	
 	
+  )
+  ),# fluidRow main
+  fluidRow(
+    p("footer")
   )
 )}
 
