@@ -4,10 +4,10 @@ nm_Est_all = c("n","d",nm_Est)
 nm_Est_calc_n = c("d",nm_Est)
 nm_Est_calc_d = c("n",nm_Est)
 
-nm_Cla_all = c("P0","delta","alphaCL","betaCL","direction","m","icc","cv","r")
+nm_Cla_all = c("P0","delta","alpha","beta","direction","m","icc","cv","r")
 nm_Cla = nm_Cla_all[-5]
 
-# Checks to see if input is:
+# Logical: checks to see if input is:
 # a number, i.e. one or more digits [0-9] optionally immediatelly followed by a decimal point and one or more digits 
 # OR
 # a decimal number without the leading zero
@@ -20,12 +20,21 @@ numericInputIsValid = function(x){
   grepl("^\\d+(\\.\\d+)?/\\d+(\\.\\d+)?$", x)
 }
 
+# Convert input from ui format to numerical format suitable for server code
+preparedNumericalInput = function(x){
+  if(length(x)>1)x=paste(x,collapse=", ")# handle selectInput values being character vector instead of a character string
+  trimws(strsplit(x,",")[[1]])
+}
+
+# Logical: check whether numeric input is in correct format
+inputIsOk = function(x){
+  all(numericInputIsValid(x))
+}
+
 # Take the string input, convert to numeric. Handles fractions.
 convertNumericInput = function(x,nm){
-  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
-  x = trimws(strsplit(x,",")[[1]])
-  input_is_ok = all(numericInputIsValid(x))
-  if(input_is_ok){
+  x = preparedNumericalInput(x)
+  if(inputIsOk(x)){
     val = rep(0,length(x))
     for(i in 1:length(x)){
       if(grepl("/",x[i])){
@@ -42,13 +51,11 @@ convertNumericInput = function(x,nm){
 
 # Provide feedback on improper inputs
 feedbackOnInput = function(x,nm){
-  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
-  x = trimws(strsplit(x,",")[[1]])
-  input_is_ok = all(numericInputIsValid(x))
-  shinyFeedback::feedbackDanger(nm, !input_is_ok, "invalid input, see error message")
+  x = preparedNumericalInput(x)
+  shinyFeedback::feedbackDanger(nm, !inputIsOk(x), "invalid input, see error message")
 }
-giveFeedbackOnInputs = function(input){
-  for(k in nm_Est_calc_n)feedbackOnInput(input[[k]],k)
+giveFeedbackOnInputs = function(x,nm){
+  for(k in nm)feedbackOnInput(x[[k]],k)
 }
 
 # Return the inputs specified by names as a list of numeric vectors
@@ -71,10 +78,10 @@ makeOutputTable = function(input){
     }
   }
   if(input$study_type == "Classification"){
-#    if(TRUE){
+    if(TRUE){
       i = getNumericInputs(nm_Cla, input)
-      val = nclOutTab(i$P0,i$delta,i$alphaCL,i$betaCL,input$direction,i$m,i$icc,i$cv,i$r)[[1]]
-#    }
+      val = nclOutTab(i$P0,i$delta,i$alpha,i$beta,input$direction,i$m,i$icc,i$cv,i$r)[[1]]
+    }
   }
   if(input$study_type == "Comparison"){
     if(TRUE){
@@ -89,6 +96,7 @@ makeOutputTable = function(input){
 
 source("functions.R")
 source("output.R")
+source("Sample size 2 group design.R")
 
 server <- function(input, output, session) {
   output$dev <- renderPrint({
@@ -96,7 +104,7 @@ server <- function(input, output, session) {
 #    print(names(input))
     print(input$study_type)
     print(input$calc_type)
-    kk=switch(input$study_type,"Estimation"=nm_Est_all,"Classification"=nm_Cla_all)
+    kk=nm_Cla#switch(input$study_type,"Estimation"=nm_Est_all,"Classification"=nm_Cla_all)
     print(kk)
     for(k in kk)print(input[[k]])
 #    for(k in nm_Est_calc_n)print(x[[k]])
@@ -109,25 +117,33 @@ server <- function(input, output, session) {
 #      print(head(dat,23))
   })
   
-  
 #  study_type = reactive({input$study_type})
   
-  # React when selecting SS or CI
+  # Reactive values
   n_or_d = reactive({input$calc_type})
+  output_table = reactive({makeOutputTable(input)})
+  numeric_input_names = reactive({
+    switch(
+      input$study_type,
+        "Estimation"=nm_Est_all,
+        "Classification"=nm_Cla,
+        "Comparison"=nm_Com_all
+    )
+  })
 
   # Give feedback on inputs
   toListen = reactive({
     i = reactiveValues()
-    for(k in nm_Est_calc_n)i[[k]]=input[[k]]
+    for(k in numeric_input_names())i[[k]]=input[[k]]
     i
   })
   observeEvent({toListen()},{
-    giveFeedbackOnInputs(input)
+    giveFeedbackOnInputs(input,numeric_input_names())
   })
 
   # Create display table
   output$ESSdf = renderTable({
-      makeOutputTable(input)
+      output_table()#makeOutputTable(input)
   }, striped=TRUE
   )
 
@@ -154,8 +170,7 @@ server <- function(input, output, session) {
     which_n_or_d = n_or_d()
     if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
       x_gran = 10 # granularity of the plot lines
-      i = reactiveValues()
-      for(k in nm_Est_calc_n)i[[k]]=convertNumericInput(input[[k]],k)
+      i = getNumericInputs(nm_Est_calc_n, input)
       i$pLst = seq(min(i$p),max(i$p),length.out=x_gran)
       dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alpha)
       ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
@@ -169,8 +184,7 @@ server <- function(input, output, session) {
     which_n_or_d = n_or_d()
     if(input$study_type=="Estimation" & which_n_or_d == "Half-width CI"){
       x_gran = 10 # granularity of the plot lines
-      i = reactiveValues()
-      for(k in nm_Est_calc_d)i[[k]]=convertNumericInput(input[[k]],k)
+      i = getNumericInputs(nm_Est_calc_d, input)
       i$nLst = seq(min(i$n),max(i$n),length.out=x_gran)
       dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
       dat$p = as.factor(dat$p)
@@ -186,7 +200,7 @@ server <- function(input, output, session) {
   output$statement_message = renderText({
     which_n_or_d = n_or_d()
     if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
-      v = makeOutputTable(input)[1,]
+      v = output_table()[1,]
       val = paste0("
         Using the first row of the table as an example:\n
         With an expected coverage proportion of ",v$p,",
@@ -203,7 +217,7 @@ server <- function(input, output, session) {
       )
     }
     if(input$study_type=="Estimation" & which_n_or_d == "Half-width CI"){
-      v = makeOutputTable(input)[1,]
+      v = output_table()[1,]
       val = paste0("
         Using the first row of the table as an example:\n
         Having an expected coverage proportion of ",v$p,",
@@ -218,6 +232,8 @@ server <- function(input, output, session) {
     }
     val
   })
+  
+  output$R_print = renderText({"hello"})
   
   
   # Download
