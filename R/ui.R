@@ -1,6 +1,6 @@
 # 
 # 
-# Outline:
+# UI Diagram:
 # ui
 #   fluidPage
 #     fluidRow "Top Row"
@@ -12,6 +12,8 @@
 #               conditionalPanel "Half-width CI"
 #             tabPanel "Classification"
 #             tabPanel "Comparison"
+#               conditionalPanel "2 Group, 2-Sided"
+#               conditionalPanel "1 Group, 1-Sided"
 #         mainPanel "Right"
 #           tabsetPanel "Output Type"
 #             tabPanel "Table"
@@ -19,21 +21,33 @@
 #               conditionalPanel "Sample size"
 #               conditionalPanel "Half-width CI"
 #             tabPanel "Statement"
+#             tabPanel "R"
 #     fluidRow "Bottom Row (footer)"
 
 
-# Workaround for Issue 468227
+# Workaround for Shinylive Issue 468227
 downloadButton = function(...) {
   tag = shiny::downloadButton(...)
   tag$attribs$download = NULL
   tag
 }
 
+#
 # Functions to instantiate inputs
+#
+
+# Estimate & Compare
 in_calc_type = function()selectInput("calc_type","Solve for:",c("Sample size","Half-width CI"))
+in_calc_typeCo = function()selectInput("calc_type_Com","Study sub-type:",c("2 Group, 2-Sided","1 Group, 1-Sided"))
+
+# Estimate, Sample size
 in_p = function()textInput('p', 'p: Expected coverage proportion', "0.10, 0.25")
 in_d = function()textInput('d', 'd: Desired half-width CI', "0.05, 0.10")
 in_n = function()textInput('n', 'n: Sample size', "300, 900")
+
+# Estimate, Half-width CI
+
+# Classification
 in_P0 = function()textInput("P0", "P0: Programmatic threshold", "0.7, 0.8")
 in_delta = function()textInput("delta", "delta: A coverage percent defining a distance from P0", "0.01, 0.05")
 in_direction = function()selectInput('direction', 'Direction', c("below","above"), "below",FALSE)
@@ -41,7 +55,6 @@ in_m = function()textInput('m', 'm: Target number of respondents per cluster', "
 in_icc = function()textInput('icc', 'icc: Intracluster correlation coefficient', "1/22, 1/6")
 in_cv = function()textInput('cv', 'cv: Coefficient of variation of sample weights', "0.50")
 in_r = function()textInput('r', 'r: Anticipated non-response rate, from 0 to 1', "0.15")
-in_calc_typeCo = function()selectInput("calc_type_Com","Study sub-type:",c("2 Group, 2-Sided","1 Group, 1-Sided"))
 in_P1 = function()textInput('P1', 'P1: Estimated coverage level from one of the two surveys', "0.5")
 in_deltaCo = function()textInput('deltaCo', 'delta: difference above P1 form which the survey should be well powered to reject the null hypothesis', "0.10")
 in_ssr = function()textInput('ssr', 'ssr: Sample size ratio between two groups n2:n1', "1.1")
@@ -162,76 +175,3 @@ ui = function(request){
     ) # fluidRow footer
   )
 }
-
-
-
-
-
-
-
-
-#ui <- function(request){fluidPage(
-#  
-#  title = "Cluster Survey Sample Size",
-#   
-#  shinyFeedback::useShinyFeedback(),
-#
-#  titlePanel("Cluster Survey Sample Size"),
-#
-#  sidebarLayout(
-#
-#    sidebarPanel(
-#
-#	  selectInput(inputId = "study_type",
-#                  label = "Choose a Study Type:",
-#                  choices = c("Estimation", "Classification", "Comparison")),
-#
-#	  # Estimation
-#      conditionalPanel(
-#        condition = "input.study_type == 'Estimation'",
-#        helpText("Enter comma-separated values, then click 'Update View'"),
-#		selectInput(inputId = "estimation_n_or_d",label="Solve for:",choices=c("Sample size","Half-width CI")),
-#		conditionalPanel(
-#		  condition = "input.estimation_n_or_d == 'Sample size'",
-#          actionButton("Btn_Est_SS","Update View", icon("refresh")),
-#          textInput('d', 'Desired half-width CI', "0.05, 0.10")
-#		 ),
-#		conditionalPanel(
-#		  condition = "input.estimation_n_or_d == 'Half-width CI'",
-#          actionButton("Btn_Est_CI","Update View", icon("refresh")),
-#          textInput('n', 'Sample size', "300, 900"),
-#		 ),
-#        textInput('p', 'Expected coverage proportion', "0.10, 0.25"),
-#        textInput('m', 'Target number of respondents per cluster', "5, 15"),
-#        textInput('icc', 'intracluster correlation coefficient', "1/22, 1/6"),
-#        textInput('cv', 'Coefficient of variation of sample weights', "0.50"),
-#        textInput('r', 'Anticipated non-response rate, from 0 to 1', "0.15"),
-#        textInput('alpha', 'Type I error rate; usually 0.05 for 95% CI', "0.05")
-#
-#      ),
-#	  
-#	  # Classification
-#      conditionalPanel(
-#        condition = "input.study_type == 'Classification'",
-#        numericInput("num", "Enter a number:", value = 1)
-#      ),
-#	  
-#	  # Comparison
-#      conditionalPanel(
-#        condition = "input.study_type == 'Comparison'",
-#        textInput("text", "Enter text:")
-#      ),
-#	  
-#    ),
-#
-#    # Main panel
-#    mainPanel(
-#	  # Bookmark feature not currently supported in Shinylive
-#      #fluidRow(downloadButton("ESSdfDownload","Download"), bookmarkButton()),
-#	  fluidRow(downloadButton("ESSdfDownload","Download")),
-#      fluidRow(tableOutput("ESSdf"))
-#    )
-#	
-#	
-#  )
-#)}

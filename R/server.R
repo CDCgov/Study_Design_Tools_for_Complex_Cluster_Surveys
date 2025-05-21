@@ -108,28 +108,12 @@ server <- function(input, output, session) {
     print(input$study_type)
     if(input$study_type=="Estimation")print(input$calc_type)
     if(input$study_type=="Comparison")print(input$calc_type_Com)
-    kk=switch(
-      input$study_type,
-        "Estimation"=switch(
-          input$calc_type,
-            "Sample size"=nm_Est_n(),
-            "Half-width CI"=nm_Est_d()
-        ),
-        "Classification"=nm_Cla_1(),
-        "Comparison"=switch(
-          input$calc_type_Com,
-            "2 Group, 2-Sided"=nm_Com_2(),
-            "1 Group, 1-Sided"=nm_Com_1()
-          )
-        )
-    print(kk)
-    for(k in kk)print(paste(k,input[[k]]))
+    for(k in numeric_input_names())print(paste(k,input[[k]]))
   })
   
 #  study_type = reactive({input$study_type})
   
   # Reactive values
-  n_or_d = reactive({input$calc_type})
   output_table = reactive({makeOutputTable(input)})
   numeric_input_names = reactive({
     switch(
@@ -160,7 +144,7 @@ server <- function(input, output, session) {
 
   # Create display table
   output$ESSdf = renderTable({
-      output_table()#makeOutputTable(input)
+      output_table()
   }, striped=TRUE
   )
 
@@ -171,52 +155,38 @@ server <- function(input, output, session) {
   x_gran = 10
 
   output$plot1 = renderPlot({
-    which_n_or_d = n_or_d()
-    if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
-      i = getNumericInputs(nm_Est_n(), input)
-      i$dLst = seq(min(i$d),max(i$d),length.out=x_gran)
-      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
-      dat$p = as.factor(dat$p)
-      ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
-        ggplot2::labs(title = "Sample Size as a function of CI Half-Width", y = "Sample Size", x = "CI Half-Width") +
-        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
-    }
+    i = getNumericInputs(nm_Est_n(), input)
+    i$dLst = seq(min(i$d),max(i$d),length.out=x_gran)
+    dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
+    dat$p = as.factor(dat$p)
+    ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+      ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+      ggplot2::labs(title = "Sample Size as a function of CI Half-Width", y = "Sample Size", x = "CI Half-Width") +
+      ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
   output$plot2 = renderPlot({
-    which_n_or_d = n_or_d()
-    if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
-      x_gran = 10 # granularity of the plot lines
-      i = getNumericInputs(nm_Est_n(), input)
-      i$pLst = seq(min(i$p),max(i$p),length.out=x_gran)
-      dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alphaEstn)
-      ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
-        ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
-        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
-    }
+    i = getNumericInputs(nm_Est_n(), input)
+    i$pLst = seq(min(i$p),max(i$p),length.out=x_gran)
+    dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alphaEstn)
+    ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
+      ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+      ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
+      ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
-  
   output$plot = renderPlot({
-    which_n_or_d = n_or_d()
-    if(input$study_type=="Estimation" & which_n_or_d == "Half-width CI"){
-      x_gran = 10 # granularity of the plot lines
-      i = getNumericInputs(nm_Est_d(), input)
-      i$nLst = seq(min(i$n),max(i$n),length.out=x_gran)
-      dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstd)
-      dat$p = as.factor(dat$p)
-      ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
-        ggplot2::labs(title = "CI Half-Width as a function of Sample Size", x = "Sample Size", y = "CI Half-Width") +
-        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
-
-    }
+    i = getNumericInputs(nm_Est_d(), input)
+    i$nLst = seq(min(i$n),max(i$n),length.out=x_gran)
+    dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstd)
+    dat$p = as.factor(dat$p)
+    ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+      ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+      ggplot2::labs(title = "CI Half-Width as a function of Sample Size", x = "Sample Size", y = "CI Half-Width") +
+      ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
   
   
   output$statement_message = renderText({
-    which_n_or_d = n_or_d()
-    if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
+    if(input$study_type=="Estimation" & input$calc_type == "Sample size"){
       v = output_table()[1,]
       val = paste0("
         Using the first row of the table as an example:\n
@@ -233,7 +203,7 @@ server <- function(input, output, session) {
         Combining sample size cluster size, we see we need ",v$nc," clusters."
       )
     }
-    if(input$study_type=="Estimation" & which_n_or_d == "Half-width CI"){
+    if(input$study_type=="Estimation" & input$calc_type == "Half-width CI"){
       v = output_table()[1,]
       val = paste0("
         Using the first row of the table as an example:\n
@@ -271,76 +241,3 @@ server <- function(input, output, session) {
   
   
 }
-
-
-
-
-
-
-
-
-
-
-
-
-#  # Render UI for plots dynamically
-#  output$plotsUI <- renderUI({
-#    
-#    dat = makeOutputTable(input)
-#    g = unique(dat[,c("m","icc","cv","r","alpha")])
-#    plot_output_list <- lapply(1:nrow(g), function(i) {
-#      plotOutput(outputId = paste0("plot", i))
-#    })
-#    do.call(tagList, plot_output_list)
-#  })
-#  
-#  # Generate plots dynamically
-#  observe({
-#    dat = makeOutputTable(input)
-#    g = unique(dat[,c("m","icc","cv","r","alpha")])
-#    x_gran = 10 # granularity of the plot lines
-#    for (i in 1:nrow(g)) {
-#      local({
-#        ii <- i
-#        output[[paste0("plot", ii)]] <- renderPlot({
-#
-#        n = seq(min(dat$n),max(dat$n),length.out=x_gran)
-#        d = dOutput(n,unique(dat$p),g$m[ii],g$icc[ii],g$cv[ii],g$r[ii],g$alpha[ii])
-#        d$p = as.factor(d$p)
-#        tit = paste0("m = ",g$m[ii]," , ","icc = ",g$icc[ii]," , ","cv = ",g$cv[ii]," , ","r = ",g$r[ii]," , ","alpha = ",g$alpha[ii])        
-#        ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = p, group = p)) +
-#          ggplot2::geom_line(size = 1) +
-#          ggplot2::labs(title = tit, x = "Sample Size", y = "CI Half-Width") +
-#          ggplot2::theme_minimal()
-##        plot(d$n,d$d,main=tit)
-#
-#        })
-#      })
-#    }
-#  })
-
-
-#  # Create display plots
-#  output$plot = renderPlot({
-#    which_n_or_d = n_or_d()
-#    dat = makeOutputTable(input)
-#    if(which_n_or_d == "Sample size"){
-#      
-#    }
-#    if(which_n_or_d == "Half-width CI"){
-#
-#      x_gran = 10 # granularity of the plot lines
-#      g = unique(dat[,c("m","icc","cv","r","alpha")])
-#      for(i in 1:nrow(g)){
-#        n = seq(min(dat$n),max(dat$n),length.out=x_gran)
-#        d = dOutput(n,unique(dat$p),g$m[i],g$icc[i],g$cv[i],g$r[i],g$alpha[i])
-#        d$p = as.factor(d$p)
-#        tit = paste0("m = ",g$m[i]," , ","icc = ",g$icc[i]," , ","cv = ",g$cv[i]," , ","r = ",g$r[i]," , ","alpha = ",g$alpha[i])        
-#        val = ggplot2::ggplot(d, ggplot2::aes(x = n, y = d, color = p, group = p)) +
-#          ggplot2::geom_line(size = 1) +
-#          ggplot2::labs(title = tit, x = "Sample Size", y = "CI Half-Width") +
-#          ggplot2::theme_minimal()
-#        print(val)
-#      }
-#    }
-#  })
