@@ -1,11 +1,9 @@
 # Names of inputs used throughout
-nm_Est = c("p","m","icc","cv","r","alpha")
-nm_Est_all = c("n","d",nm_Est)
-nm_Est_calc_n = c("d",nm_Est)
-nm_Est_calc_d = c("n",nm_Est)
-
-nm_Cla_all = c("P0","delta","alpha","beta","direction","m","icc","cv","r")
-nm_Cla = nm_Cla_all[-5]
+nm_Est_n = function()c("d","p","m","icc","cv","r","alphaEstn")
+nm_Est_d = function()c("n","p","m","icc","cv","r","alphaEstd")
+nm_Cla_1 = function()c("P0","delta","alphaCla","betaCla","m","icc","cv","r")
+nm_Com_2 = function()c("P1","deltaCo","ssr","alphaCom2","betaCom2")
+nm_Com_1 = function()c("PA","PB","essa","alphaCom1","betaCom1")
 
 # Logical: checks to see if input is:
 # a number, i.e. one or more digits [0-9] optionally immediatelly followed by a decimal point and one or more digits 
@@ -69,24 +67,30 @@ getNumericInputs = function(names, x=input){
 makeOutputTable = function(input){
   if(input$study_type == "Estimation"){
     if(input$calc_type == "Sample size"){
-      i = getNumericInputs(nm_Est_calc_n, input)
-      val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      i = getNumericInputs(nm_Est_n(), input)
+      val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
     }
     if(input$calc_type == "Half-width CI"){
-      i = getNumericInputs(nm_Est_calc_d, input)
-      val = dOutput(i$n,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      i = getNumericInputs(nm_Est_d(), input)
+      val = dOutput(i$n,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstd)
     }
   }
   if(input$study_type == "Classification"){
     if(TRUE){
-      i = getNumericInputs(nm_Cla, input)
-      val = nclOutTab(i$P0,i$delta,i$alpha,i$beta,input$direction,i$m,i$icc,i$cv,i$r)[[1]]
+      i = getNumericInputs(nm_Cla_1(), input)
+      val = nclOutTab(i$P0,i$delta,i$alphaCla,i$betaCla,input$direction,i$m,i$icc,i$cv,i$r)[[1]]
     }
   }
   if(input$study_type == "Comparison"){
     if(TRUE){
-      #i = getNumericInputs(nm_Est_calc_n, input)
-      #val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      if(input$calc_type_Com == "2 Group, 2-Sided"){
+        i = getNumericInputs(nm_Com_2(), input)
+        val = ESS_2Grp_2sided(i$P1,i$deltaCo,i$alphaCom2,i$betaCom2,i$ssr)
+      }
+      if(input$calc_type_Com == "1 Group, 1-Sided"){
+        i = getNumericInputs(nm_Com_1(), input)
+        val = ESS_1Grp_1sided(i$PA,i$PB,i$alphaCom1,i$betaCom1,i$essa)
+      }
     }
   }
   val
@@ -101,20 +105,25 @@ source("Sample size 2 group design.R")
 server <- function(input, output, session) {
   output$dev <- renderPrint({
     print(input)
-#    print(names(input))
     print(input$study_type)
-    print(input$calc_type)
-    kk=nm_Cla#switch(input$study_type,"Estimation"=nm_Est_all,"Classification"=nm_Cla_all)
+    if(input$study_type=="Estimation")print(input$calc_type)
+    if(input$study_type=="Comparison")print(input$calc_type_Com)
+    kk=switch(
+      input$study_type,
+        "Estimation"=switch(
+          input$calc_type,
+            "Sample size"=nm_Est_n(),
+            "Half-width CI"=nm_Est_d()
+        ),
+        "Classification"=nm_Cla_1(),
+        "Comparison"=switch(
+          input$calc_type_Com,
+            "2 Group, 2-Sided"=nm_Com_2(),
+            "1 Group, 1-Sided"=nm_Com_1()
+          )
+        )
     print(kk)
-    for(k in kk)print(input[[k]])
-#    for(k in nm_Est_calc_n)print(x[[k]])
-#      i_nm = c("d","p","m","icc","cv","r","alpha")
-#      i = reactiveValues()
-#      for(k in i_nm)i[[k]]=convertNumericInput(input[[k]],k)
-#      print(seq(min(i$d),max(i$d),length.out=x_gran))
-#      i$dLst = seq(min(i$d),max(i$d),length.out=x_gran)
-#      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
-#      print(head(dat,23))
+    for(k in kk)print(paste(k,input[[k]]))
   })
   
 #  study_type = reactive({input$study_type})
@@ -125,9 +134,17 @@ server <- function(input, output, session) {
   numeric_input_names = reactive({
     switch(
       input$study_type,
-        "Estimation"=nm_Est_all,
-        "Classification"=nm_Cla,
-        "Comparison"=nm_Com_all
+        "Estimation"=switch(
+          input$calc_type,
+            "Sample size"=nm_Est_n(),
+            "Half-width CI"=nm_Est_d()
+        ),
+        "Classification"=nm_Cla_1(),
+        "Comparison"=switch(
+          input$calc_type_Com,
+            "2 Group, 2-Sided"=nm_Com_2(),
+            "1 Group, 1-Sided"=nm_Com_1()
+          )
     )
   })
 
@@ -156,9 +173,9 @@ server <- function(input, output, session) {
   output$plot1 = renderPlot({
     which_n_or_d = n_or_d()
     if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
-      i = getNumericInputs(nm_Est_calc_n, input)
+      i = getNumericInputs(nm_Est_n(), input)
       i$dLst = seq(min(i$d),max(i$d),length.out=x_gran)
-      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
       dat$p = as.factor(dat$p)
       ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
         ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
@@ -170,9 +187,9 @@ server <- function(input, output, session) {
     which_n_or_d = n_or_d()
     if(input$study_type=="Estimation" & which_n_or_d == "Sample size"){
       x_gran = 10 # granularity of the plot lines
-      i = getNumericInputs(nm_Est_calc_n, input)
+      i = getNumericInputs(nm_Est_n(), input)
       i$pLst = seq(min(i$p),max(i$p),length.out=x_gran)
-      dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alphaEstn)
       ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
         ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
         ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
@@ -184,9 +201,9 @@ server <- function(input, output, session) {
     which_n_or_d = n_or_d()
     if(input$study_type=="Estimation" & which_n_or_d == "Half-width CI"){
       x_gran = 10 # granularity of the plot lines
-      i = getNumericInputs(nm_Est_calc_d, input)
+      i = getNumericInputs(nm_Est_d(), input)
       i$nLst = seq(min(i$n),max(i$n),length.out=x_gran)
-      dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+      dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstd)
       dat$p = as.factor(dat$p)
       ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
         ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
