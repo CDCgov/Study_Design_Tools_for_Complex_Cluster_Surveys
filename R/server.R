@@ -63,12 +63,37 @@ getNumericInputs = function(names, x=input){
   i
 }
 
+getFunArgNames = function(fun_name)names(formals(get(fun_name)))
+getICIDforFun = function(fun_name)paste0(fun_name,"_",getFunArgNames(fun_name))
+
+getOutputUsingFun = function(fun_name,input){
+  unm = getICIDforFun(fun_name)
+  fnm = getFunArgNames(fun_name)
+  ii = getNumericInputs(unm, input)  
+  vals = reactiveValues()
+  for(k in fnm)vals[[k]]=ii[[paste0(fun_name,"_",k)]]
+  txt = paste0(fun_name,paste0("(",paste(paste(fnm,reactiveValuesToList(vals),sep="="),collapse=" , "),")"))
+#print(paste0(fun_name,paste0("(",paste(paste(fnm,reactiveValuesToList(vals),sep="="),collapse=" , "),")")))
+#print(paste(reactiveValuesToList(vals)))
+#print(lapply(vals,identity))
+#print(ii)
+#print(names(ii))
+#for(k in names(ii))print(ii[[k]])
+#for(k in fnm){vals[[k]]=ii[[paste0(fun_name,"_",k)]];print(vals[[k]])}
+#print(vals)
+#print(names(vals))
+#for(k in names(vals))print(vals[[k]])
+#print(isolate(paste(vals)))
+  eval(parse(text=txt))
+}
+
 # Makes table of sample sizes for Estimation studies
 makeOutputTable = function(input){
   if(input$study_type == "Estimation"){
     if(input$calc_type == "Sample size"){
-      i = getNumericInputs(nm_Est_n(), input)
-      val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
+#      i = getNumericInputs(nm_Est_n(), input)
+#      val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
+      val = getOutputUsingFun("nOutTab",input)
     }
     if(input$calc_type == "Half-width CI"){
       i = getNumericInputs(nm_Est_d(), input)
@@ -120,7 +145,7 @@ server <- function(input, output, session) {
       input$study_type,
         "Estimation"=switch(
           input$calc_type,
-            "Sample size"=nm_Est_n(),
+            "Sample size"=getICIDforFun("nOutTab"),#nm_Est_n(),
             "Half-width CI"=nm_Est_d()
         ),
         "Classification"=nm_Cla_1(),

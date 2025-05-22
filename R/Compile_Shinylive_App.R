@@ -90,6 +90,7 @@ buildInputControlFor = function(fun_name){
   f = function(x){
     type = x$input_control_type
     args = x$input_control_args
+    args$label = paste0(args$inputId,": ",args$label)
     args$inputId = paste0(fun_name,"_",args$inputId)
     aschArgs = as.character(args)
     ii = sapply(args,length)==1 & !sapply(args,is.logical)
@@ -103,6 +104,34 @@ ret=buildInputControlFor("nOutTab")
 ret$d
 ret$alpha
 ret$p # can control order this way; each has class shiny.tag
+
+
+
+getFunArgNames = function(fun_name)names(formals(get(fun_name)))
+getFunArgNames("nOutTab")
+getICIDforFun = function(fun_name)paste0(fun_name,"_",getFunArgNames(fun_name))
+getICIDforFun("nOutTab")
+
+fun_name="nOutTab"
+i = list(c(0.10,0.25),c(0.05,0.20),15,1/6,.5,.15,0.05)
+names(i) = getICIDforFun(fun_name)
+i
+#getOutputUsingFun = function(fun_name,input){
+  unm = getICIDforFun(fun_name)
+  fnm = getFunArgNames(fun_name)
+#  i = getNumericInputs(unm, input)  
+  names(i) = sub(paste0(fun_name,"_"),"",names(i))
+  i = i[match(fnm,names(i))]
+  txt = paste0(fun_name,paste0("(",paste(paste(fnm,i,sep="="),collapse=" , "),")"))
+  eval(parse(text=txt))
+
+#}
+
+
+
+
+
+
 
 
 fun = "nOutTab"

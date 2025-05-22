@@ -54,6 +54,26 @@ downloadButton = function(...) {
 # c indicates calculation type within study type.
 # d? is one or more characters identifying the input.
 
+buildInputControlFor = function(fun_name){
+  meta = eval(parse(text=paste0(".",fun_name,".meta")))
+  f = function(x){
+    type = x$input_control_type
+    args = x$input_control_args
+    args$label = paste0(args$inputId,": ",args$label)
+    args$inputId = paste0(fun_name,"_",args$inputId)
+    aschArgs = as.character(args)
+    ii = sapply(args,length)==1 & !sapply(args,is.logical)
+    aschArgs[ii] = paste0("'",aschArgs[ii],"'")
+    val = paste0(type,paste0("(",paste(paste(names(args),aschArgs,sep="="),collapse=" , "),")"))
+    eval(parse(text=val))
+  }
+  lapply(meta,f)
+}
+
+source("ui_input_controls_info.R")
+ic_nOutTab = buildInputControlFor("nOutTab")
+
+
 # selectInput()s for choosing calculation type
 in_calc_type = function()selectInput("calc_type","Solve for:",c("Sample size","Half-width CI"))
 in_calc_typeCo = function()selectInput("calc_type_Com","Study sub-type:",c("2 Group, 2-Sided","1 Group, 1-Sided"))
@@ -120,16 +140,21 @@ ui = function(request){
               in_calc_type(),
               conditionalPanel(
                 condition = "input.calc_type == 'Sample size'",
-                in_d(),
-                in_alphaEstn()
+                ic_nOutTab$d,
+                ic_nOutTab$p,
+                ic_nOutTab$alpha,
+                ic_nOutTab$m,
+                ic_nOutTab$icc,
+                ic_nOutTab$cv,
+                ic_nOutTab$r
               ),
               conditionalPanel(
                 condition = "input.calc_type == 'Half-width CI'",
                 in_n(),
-                in_alphaEstd()
+                in_p(),
+                in_alphaEstd(),
+                in_m(),in_icc(),in_cv(),in_r()
               ),
-              in_p(),
-              in_m(),in_icc(),in_cv(),in_r()
             ),
             # Classification
             tabPanel(
