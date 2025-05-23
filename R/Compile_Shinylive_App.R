@@ -30,5 +30,3 @@ shinylive::export(appdir = getwd(), destdir = "../../web_app_placeholder")
 # Check that the serverless web app works properly
 httpuv::runStaticServer("../../web_app_placeholder")
 
-
-

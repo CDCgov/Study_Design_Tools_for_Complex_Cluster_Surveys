@@ -116,6 +116,7 @@ source("functions.R")
 source("output.R")
 source("Sample size 2 group design.R")
 
+
 server = function(input, output, session) {
   output$dev = renderPrint({
     print(input)
@@ -161,7 +162,6 @@ server = function(input, output, session) {
   )
 
 
-  
 
   # Set granularity of the plot lines
   x_gran = 10
@@ -227,7 +227,6 @@ server = function(input, output, session) {
   })
   
   output$R_print = renderText({"hello"})
-  
   
   # Download
   EstSSOutTab = reactive({makeOutputTable(input)})

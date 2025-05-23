@@ -186,3 +186,4 @@ ui = function(request){
     ) # fluidRow footer
   )
 }
+
