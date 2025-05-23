@@ -25,8 +25,8 @@ source(paste0(this.path::here(),"/","setWD.R"))
 shiny::runApp()
 
 # Compile into serverless web app
-shinylive::export(appdir = getwd(), destdir = "../../web_app_placeholder")
+shinylive::export(appdir = getwd(), destdir = "../docs")
 
 # Check that the serverless web app works properly
-httpuv::runStaticServer("../../web_app_placeholder")
+httpuv::runStaticServer("../docs")
 
