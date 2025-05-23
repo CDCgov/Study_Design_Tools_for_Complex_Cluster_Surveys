@@ -1,23 +1,36 @@
-# A number, i.e. one or more digits [0-9] optionally immediatelly followed 
-#   by a decimal point and one or more digits 
+# GitHub: https://github.com/CDCgov/Study_Design_Tools_for_Complex_Cluster_Surveys
+# App: https://cdcgov.github.io/Study_Design_Tools_for_Complex_Cluster_Surveys/
+#
+# Server code for Shinylive app
+
+# Logical: checks to see if input is:
+# a number, i.e. one or more digits [0-9] optionally immediatelly followed by a decimal point and one or more digits 
 # OR
-# A decimal number without the leading zero
+# a decimal number without the leading zero
 # OR
-# A fraction, i.e. a number immediately followed by a slash 
-#   immediately followed by a number
+# a fraction, i.e. a number immediately followed by a slash immediately followed by a number
 # Note: currently does not allow numerator or denominator of fraction to be a decimal number unless it has a leading zero
-numeric_input_is_valid = function(x){
+numericInputIsValid = function(x){
   grepl("^\\d+(\\.\\d+)?$", x) | 
   grepl("^\\.\\d+$", x) | 
   grepl("^\\d+(\\.\\d+)?/\\d+(\\.\\d+)?$", x)
 }
 
+# Convert input from ui format to numerical format suitable for server code
+preparedNumericalInput = function(x){
+  if(length(x)>1)x=paste(x,collapse=", ")# handle selectInput values being character vector instead of a character string
+  trimws(strsplit(x,",")[[1]])
+}
+
+# Logical: check whether numeric input is in correct format
+inputIsOk = function(x){
+  all(numericInputIsValid(x))
+}
+
 # Take the string input, convert to numeric. Handles fractions.
-convert_numeric_input = function(x,nm){
-  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
-  x = trimws(strsplit(x,",")[[1]])
-  input_is_ok = all(numeric_input_is_valid(x))
-  if(input_is_ok){
+convertNumericInput = function(x,nm){
+  x = preparedNumericalInput(x)
+  if(inputIsOk(x)){
     val = rep(0,length(x))
     for(i in 1:length(x)){
       if(grepl("/",x[i])){
@@ -33,30 +46,66 @@ convert_numeric_input = function(x,nm){
 }
 
 # Provide feedback on improper inputs
-feedback_on_input = function(x,nm){
-  if(length(x)>1)x=paste(x,collapse=", ")# handle "alpha" being a character vector instead of a character string
-  x = trimws(strsplit(x,",")[[1]])
-  input_is_ok = all(numeric_input_is_valid(x))
-  shinyFeedback::feedbackDanger(nm, !input_is_ok, "invalid input, see error message")
+feedbackOnInput = function(x,nm){
+  x = preparedNumericalInput(x)
+  shinyFeedback::feedbackDanger(nm, !inputIsOk(x), "invalid input, see error message")
 }
-give_feedback_on_inputs = function(input){
-  i_nm = c("d","p","m","icc","cv","r","alpha")
-  for(k in i_nm)feedback_on_input(input[[k]],k)
+giveFeedbackOnInputs = function(x,nm){
+  for(k in nm)feedbackOnInput(x[[k]],k)
+}
+
+# Return the inputs specified by names as a list of numeric vectors
+getNumericInputs = function(names, x=input){
+  i = reactiveValues()
+  for(k in names)i[[k]]=convertNumericInput(x[[k]],k)
+  i
+}
+
+getFunArgNames = function(fun_name)names(formals(get(fun_name)))
+getICIDforFun = function(fun_name)paste0(fun_name,"_",getFunArgNames(fun_name))
+
+getOutputUsingFun = function(fun_name,input,...){
+  unm = getICIDforFun(fun_name)
+  fnm = getFunArgNames(fun_name)
+  if(input$study_type=="Classification")unm=unm[!unm=="nclOutTab_direction"]
+  ii = getNumericInputs(unm, input)  
+  vals = reactiveValues()
+  for(k in fnm)vals[[k]]=ii[[paste0(fun_name,"_",k)]]
+  vals = reactiveValuesToList(vals)
+  if(input$study_type=="Classification")vals$direction=paste0("'",input$nclOutTab_direction,"'")
+  aLst = list(...)
+  if("expandForPlot" %in% names(aLst)){
+    k = aLst$expandForPlot
+    vals[[k]] = seq(min(vals[[k]]),max(vals[[k]]),length.out=aLst$x_gran)
+  }
+  txt = paste0(fun_name,paste0("(",paste(paste(fnm,vals,sep="="),collapse=" , "),")"))
+  eval(parse(text=txt))
 }
 
 # Makes table of sample sizes for Estimation studies
-make_Est_SS_Tab = function(input){
-  if(input$estimation_n_or_d == "Sample size"){
-    i_nm = c("d","p","m","icc","cv","r","alpha")
-    i = reactiveValues()
-    for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-    val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+makeOutputTable = function(input){
+  if(input$study_type == "Estimation"){
+    if(input$calc_type == "Sample size"){
+      val = getOutputUsingFun("nOutTab",input)
+    }
+    if(input$calc_type == "Half-width CI"){
+      val = getOutputUsingFun("dOutput",input)
+    }
   }
-  if(input$estimation_n_or_d == "Half-width CI"){
-    i_nm = c("n","p","m","icc","cv","r","alpha")
-    i = reactiveValues()
-    for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-    val = dOutput(i$n,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
+  if(input$study_type == "Classification"){
+    if(TRUE){
+      val = getOutputUsingFun("nclOutTab",input)
+    }
+  }
+  if(input$study_type == "Comparison"){
+    if(TRUE){
+      if(input$calc_type_Com == "2 Group, 2-Sided"){
+        val = getOutputUsingFun("ESS_2Grp_2Sided",input)
+      }
+      if(input$calc_type_Com == "1 Group, 1-Sided"){
+        val = getOutputUsingFun("ESS_1Grp_1Sided",input)
+      }
+    }
   }
   val
 }
@@ -65,89 +114,86 @@ make_Est_SS_Tab = function(input){
 
 source("functions.R")
 source("output.R")
+source("Sample size 2 group design.R")
 
-server <- function(input, output, session) {
-  output$dev <- renderPrint({
-    print(input$estimation_n_or_d)
+
+server = function(input, output, session) {
+  output$dev = renderPrint({
+    print(input)
+    print(input$study_type)
+    if(input$study_type=="Estimation")print(input$calc_type)
+    if(input$study_type=="Comparison")print(input$calc_type_Com)
+    for(k in numeric_input_names())print(paste(k,input[[k]]))
   })
   
-  # React when selecting SS or CI
-  n_or_d = reactive({input$estimation_n_or_d})
+  # Reactive values
+  output_table = reactive({makeOutputTable(input)})
+  numeric_input_names = reactive({
+    switch(
+      input$study_type,
+        "Estimation"=switch(
+          input$calc_type,
+            "Sample size"=getICIDforFun("nOutTab"),
+            "Half-width CI"=getICIDforFun("dOutput")
+        ),
+        "Classification"=getICIDforFun("nclOutTab")[!getICIDforFun("nclOutTab")=="nclOutTab_direction"],
+        "Comparison"=switch(
+          input$calc_type_Com,
+            "2 Group, 2-Sided"=getICIDforFun("ESS_2Grp_2Sided"),
+            "1 Group, 1-Sided"=getICIDforFun("ESS_1Grp_1Sided")
+          )
+    )
+  })
 
   # Give feedback on inputs
-  observeEvent(1,{give_feedback_on_inputs(input)})
+  toListen = reactive({
+    i = reactiveValues()
+    for(k in numeric_input_names())i[[k]]=input[[k]]
+    i
+  })
+  observeEvent({toListen()},{
+    giveFeedbackOnInputs(input,numeric_input_names())
+  })
 
   # Create display table
   output$ESSdf = renderTable({
-    which_n_or_d = n_or_d()
-    if(which_n_or_d == "Sample size"){
-      val = make_Est_SS_Tab(input)
-    }
-    if(which_n_or_d == "Half-width CI"){
-      val = make_Est_SS_Tab(input)
-    }
-    val
+      output_table()
   }, striped=TRUE
   )
 
 
 
+  # Set granularity of the plot lines
+  x_gran = 10
 
   output$plot1 = renderPlot({
-    which_n_or_d = n_or_d()
-    if(which_n_or_d == "Sample size"){
-      x.gran = 10 # granularity of the plot lines
-      i_nm = c("d","p","m","icc","cv","r","alpha")
-      i = reactiveValues()
-      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-      i$dLst = seq(min(i$d),max(i$d),length.out=x.gran)
-      dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
-      dat$p = as.factor(dat$p)
-      ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
-        ggplot2::labs(title = "Sample Size as a function of CI Half-Width", y = "Sample Size", x = "CI Half-Width") +
-        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
-    }
+    dat = getOutputUsingFun("nOutTab",input,expandForPlot="d",x_gran=x_gran)
+    dat$p = as.factor(dat$p)
+    ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+      ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+      ggplot2::labs(title = "Sample Size as a function of CI Half-Width", y = "Sample Size", x = "CI Half-Width") +
+      ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
   output$plot2 = renderPlot({
-    which_n_or_d = n_or_d()
-    if(which_n_or_d == "Sample size"){
-      x.gran = 10 # granularity of the plot lines
-      i_nm = c("d","p","m","icc","cv","r","alpha")
-      i = reactiveValues()
-      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-      i$pLst = seq(min(i$p),max(i$p),length.out=x.gran)
-      dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alpha)
-      ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
-        ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
-        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
-    }
+    dat = getOutputUsingFun("nOutTab",input,expandForPlot="p",x_gran=x_gran)
+    ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
+      ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+      ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
+      ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
-  
   output$plot = renderPlot({
-    which_n_or_d = n_or_d()
-    if(which_n_or_d == "Half-width CI"){
-      x.gran = 10 # granularity of the plot lines
-      i_nm = c("n","p","m","icc","cv","r","alpha")
-      i = reactiveValues()
-      for(k in i_nm)i[[k]]=convert_numeric_input(input[[k]],k)
-      i$nLst = seq(min(i$n),max(i$n),length.out=x.gran)
-      dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alpha)
-      dat$p = as.factor(dat$p)
-      ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
-        ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
-        ggplot2::labs(title = "CI Half-Width as a function of Sample Size", x = "Sample Size", y = "CI Half-Width") +
-        ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
-
-    }
+    dat = getOutputUsingFun("dOutput",input,expandForPlot="n",x_gran=x_gran)
+    dat$p = as.factor(dat$p)
+    ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
+      ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
+      ggplot2::labs(title = "CI Half-Width as a function of Sample Size", x = "Sample Size", y = "CI Half-Width") +
+      ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
   
   
   output$statement_message = renderText({
-    which_n_or_d = n_or_d()
-    if(which_n_or_d == "Sample size"){
-      v = make_Est_SS_Tab(input)[1,]
+    if(input$study_type=="Estimation" & input$calc_type == "Sample size"){
+      v = output_table()[1,]
       val = paste0("
         Using the first row of the table as an example:\n
         With an expected coverage proportion of ",v$p,",
@@ -163,8 +209,8 @@ server <- function(input, output, session) {
         Combining sample size cluster size, we see we need ",v$nc," clusters."
       )
     }
-    if(which_n_or_d == "Half-width CI"){
-      v = make_Est_SS_Tab(input)[1,]
+    if(input$study_type=="Estimation" & input$calc_type == "Half-width CI"){
+      v = output_table()[1,]
       val = paste0("
         Using the first row of the table as an example:\n
         Having an expected coverage proportion of ",v$p,",
@@ -180,9 +226,10 @@ server <- function(input, output, session) {
     val
   })
   
+  output$R_print = renderText({"hello"})
   
   # Download
-  EstSSOutTab = reactive({make_Est_SS_Tab(input)})
+  EstSSOutTab = reactive({makeOutputTable(input)})
 	
   output$ESSdfDownload = downloadHandler(
     filename = "sample_size.csv",
