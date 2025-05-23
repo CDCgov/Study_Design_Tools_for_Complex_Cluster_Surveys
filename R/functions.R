@@ -56,11 +56,11 @@ halfWidthCI = function(n,p,m,icc,cv,r,alpha=0.05){
 ESScl = function(P0, delta, alpha, beta, direction){
   if(P0<0|P0>1)stop("P0 must be a number from 0 to 1")
   if(alpha<=0|alpha>=1|beta<=0|beta>=1)stop("alpha & beta must be a number between 0 and 1")
-  dir = tolower(direction)
-  if(!dir %in% c('above','below'))stop("direction must be either 'above' or 'below' (case-insensitive)")
-  if(dir=='above' & P0+delta>1)stop("P0+delta>1")
-  if(dir=='below' & P0-delta<0)stop("P0-delta<0")
-  if (dir=='above') {P1=P0+delta} else {P1=P0-delta}
+  direction = tolower(direction)
+  if(!direction %in% c('above','below'))stop("direction must be either 'above' or 'below' (case-insensitive)")
+  if(direction=='above' & P0+delta>1)stop("P0+delta>1")
+  if(direction=='below' & P0-delta<0)stop("P0-delta<0")
+  if (direction=='above') {P1=P0+delta} else {P1=P0-delta}
   z1=qnorm(1-alpha)
   z2=qnorm(1-beta)  
   n_0 = ((z1*sqrt(P0*(1-P0))+z2*sqrt(P1*(1-P1)))/(P1-P0))**2
