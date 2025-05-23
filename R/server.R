@@ -1,9 +1,7 @@
-# Names of inputs used throughout
-nm_Est_n = function()c("d","p","m","icc","cv","r","alphaEstn")
-nm_Est_d = function()c("n","p","m","icc","cv","r","alphaEstd")
-nm_Cla_1 = function()c("P0","delta","alphaCla","betaCla","m","icc","cv","r")
-nm_Com_2 = function()c("P1","deltaCo","ssr","alphaCom2","betaCom2")
-nm_Com_1 = function()c("PA","PB","essa","alphaCom1","betaCom1")
+# GitHub: https://github.com/CDCgov/Study_Design_Tools_for_Complex_Cluster_Surveys
+# App: https://cdcgov.github.io/Study_Design_Tools_for_Complex_Cluster_Surveys/
+#
+# Server code for Shinylive app
 
 # Logical: checks to see if input is:
 # a number, i.e. one or more digits [0-9] optionally immediatelly followed by a decimal point and one or more digits 
@@ -118,16 +116,14 @@ source("functions.R")
 source("output.R")
 source("Sample size 2 group design.R")
 
-server <- function(input, output, session) {
-  output$dev <- renderPrint({
+server = function(input, output, session) {
+  output$dev = renderPrint({
     print(input)
     print(input$study_type)
     if(input$study_type=="Estimation")print(input$calc_type)
     if(input$study_type=="Comparison")print(input$calc_type_Com)
     for(k in numeric_input_names())print(paste(k,input[[k]]))
   })
-  
-#  study_type = reactive({input$study_type})
   
   # Reactive values
   output_table = reactive({makeOutputTable(input)})

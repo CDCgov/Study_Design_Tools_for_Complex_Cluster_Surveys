@@ -39,20 +39,7 @@ downloadButton = function(...) {
   tag
 }
 
-#
-# Functions to instantiate inputs
-#
-# Wanted to re-use inputs across study/calculation-types, esp common ones, like 'alpha'.
-# Unfortunately, this caused several difficult- or impossible-to-resolve issues.
-# So we're going to create a gazillion of them, below.
-#
-# Naming convention: 
-# aa_bbb_c_d?, where:
-# aa indicates variable type, e.g. "in" below indicates it is a function to instantiate an input,
-#    "nm" in server.R indicates it is the name of an 'input'.
-# bbb indicates study type, one of "Est", "Cla", "Com".
-# c indicates calculation type within study type.
-# d? is one or more characters identifying the input.
+# Objects to instantiate inputs
 
 buildInputControlFor = function(fun_name){
   meta = eval(parse(text=paste0(".",fun_name,".meta")))
@@ -80,38 +67,6 @@ ic_ESS_1Grp_1Sided = buildInputControlFor("ESS_1Grp_1Sided")
 # selectInput()s for choosing calculation type
 in_calc_type = function()selectInput("calc_type","Solve for:",c("Sample size","Half-width CI"))
 in_calc_typeCo = function()selectInput("calc_type_Com","Study sub-type:",c("2 Group, 2-Sided","1 Group, 1-Sided"))
-
-# Classification, Sample size
-in_P0 = function()textInput("P0", "P0: Programmatic threshold", "0.7, 0.8")
-in_delta = function()textInput("delta", "delta: A coverage percent defining a distance from P0", "0.01, 0.05")
-in_direction = function()selectInput('direction', 'Direction', c("below","above"), "below",FALSE)
-in_alphaCla  = function()selectInput('alphaCla', 'alpha: Type I error rate', c("0.01","0.025","0.05","0.10"), c("0.01","0.05"),TRUE)
-in_betaCla  = function()selectInput('betaCla', 'beta: Type II error rate', c("0.10","0.20"), c("0.20","0.10"),TRUE)
-
-# Classification, Delta
-
-# Comparison, 2 Group 2-Sided, Sample size
-in_P1 = function()textInput('P1', 'P1: Estimated coverage level from one of the two surveys', "0.5")
-in_deltaCo = function()textInput('deltaCo', 'delta: difference above P1 form which the survey should be well powered to reject the null hypothesis', "0.10")
-in_ssr = function()textInput('ssr', 'ssr: Sample size ratio between two groups n2:n1', "1.1")
-in_alphaCom2 = function()selectInput('alphaCom2', 'alpha: Type I error rate', c("0.01","0.025","0.05","0.10"), "0.10",TRUE)
-in_betaCom2 = function()selectInput('betaCom2', 'beta: Type II error rate', c("0.10","0.20"), "0.20",TRUE)
-
-# Comparison, 1 Group 1-Sided, Sample size
-in_PA = function()textInput('PA', 'PA: Coverage for the previously conducted survey', "0.7")
-in_PB = function()textInput('PB', 'PB: Coverage for the planned survey', "0.8")
-in_essa = function()textInput('essa', 'essa: Effective sample size from early conducted survey', "174")
-in_alphaCom1 = function()selectInput('alphaCom1', 'alpha: Type I error rate', c("0.01","0.025","0.05","0.10"), "0.05",TRUE)
-in_betaCom1 = function()selectInput('betaCom1', 'beta: Type II error rate', c("0.10","0.20"), "0.20",TRUE)
-
-# Design Effect & Non-response rate, common to all
-in_m = function()textInput('m', 'm: Target number of respondents per cluster', "5, 15")
-in_icc = function()textInput('icc', 'icc: Intracluster correlation coefficient', "1/22, 1/6")
-in_cv = function()textInput('cv', 'cv: Coefficient of variation of sample weights', "0.50")
-in_r = function()textInput('r', 'r: Anticipated non-response rate, from 0 to 1', "0.15")
-
-
-
 
 
 
