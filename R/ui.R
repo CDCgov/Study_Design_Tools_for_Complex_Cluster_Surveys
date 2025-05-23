@@ -72,20 +72,14 @@ buildInputControlFor = function(fun_name){
 
 source("ui_input_controls_info.R")
 ic_nOutTab = buildInputControlFor("nOutTab")
-
+ic_dOutput = buildInputControlFor("dOutput")
+ic_nclOutTab = buildInputControlFor("nclOutTab")
+ic_ESS_2Grp_2Sided = buildInputControlFor("ESS_2Grp_2Sided")
+ic_ESS_1Grp_1Sided = buildInputControlFor("ESS_1Grp_1Sided")
 
 # selectInput()s for choosing calculation type
 in_calc_type = function()selectInput("calc_type","Solve for:",c("Sample size","Half-width CI"))
 in_calc_typeCo = function()selectInput("calc_type_Com","Study sub-type:",c("2 Group, 2-Sided","1 Group, 1-Sided"))
-
-# Estimate, Sample size
-in_p = function()textInput('p', 'p: Expected coverage proportion', "0.10, 0.25")
-in_d = function()textInput('d', 'd: Desired half-width CI', "0.05, 0.10")
-in_alphaEstn = function()selectInput('alphaEstn', 'alpha: Type I error rate', c("0.01","0.025","0.05","0.10"), "0.05",TRUE)
-
-# Estimate, Half-width CI
-in_n = function()textInput('n', 'n: Sample size', "300, 900")
-in_alphaEstd = function()selectInput('alphaEstd', 'alpha: Type I error rate', c("0.01","0.025","0.05","0.10"), "0.05",TRUE)
 
 # Classification, Sample size
 in_P0 = function()textInput("P0", "P0: Programmatic threshold", "0.7, 0.8")
@@ -150,22 +144,28 @@ ui = function(request){
               ),
               conditionalPanel(
                 condition = "input.calc_type == 'Half-width CI'",
-                in_n(),
-                in_p(),
-                in_alphaEstd(),
-                in_m(),in_icc(),in_cv(),in_r()
-              ),
+                ic_dOutput$n,
+                ic_dOutput$p,
+                ic_dOutput$alpha,
+                ic_dOutput$m,
+                ic_dOutput$icc,
+                ic_dOutput$cv,
+                ic_dOutput$r
+              )
             ),
             # Classification
             tabPanel(
               "Classification",
               condition = "input.study_type == 'Classification'",
-              in_P0(),
-              in_delta(),
-              in_direction(),
-              in_alphaCla(),
-              in_betaCla(),
-              in_m(),in_icc(),in_cv(),in_r()
+              ic_nclOutTab$P0,
+              ic_nclOutTab$delta,
+              ic_nclOutTab$direction,
+              ic_nclOutTab$alpha,
+              ic_nclOutTab$beta,
+              ic_nclOutTab$m,
+              ic_nclOutTab$icc,
+              ic_nclOutTab$cv,
+              ic_nclOutTab$r
             ),
             # Comparison
             tabPanel(
@@ -174,21 +174,21 @@ ui = function(request){
               in_calc_typeCo(),
               conditionalPanel(
                 condition = "input.calc_type_Com == '2 Group, 2-Sided'",
-                in_P1(),
-                in_deltaCo(),
-                in_alphaCom2(),
-                in_betaCom2(),
-                in_ssr()
+                ic_ESS_2Grp_2Sided$P1,
+                ic_ESS_2Grp_2Sided$Delta,
+                ic_ESS_2Grp_2Sided$Alpha,
+                ic_ESS_2Grp_2Sided$Beta,
+                ic_ESS_2Grp_2Sided$SS_ratio
               ),
               conditionalPanel(
                 condition = "input.calc_type_Com == '1 Group, 1-Sided'",
-                in_PA(),
-                in_PB(),
-                in_alphaCom1(),
-                in_betaCom1(),
-                in_essa()
+                ic_ESS_1Grp_1Sided$P1,
+                ic_ESS_1Grp_1Sided$P2,
+                ic_ESS_1Grp_1Sided$Alpha,
+                ic_ESS_1Grp_1Sided$Beta,
+                ic_ESS_1Grp_1Sided$ESS1
               ),
-            ),
+            )
           )
         ),
         # Main panel

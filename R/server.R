@@ -66,24 +66,21 @@ getNumericInputs = function(names, x=input){
 getFunArgNames = function(fun_name)names(formals(get(fun_name)))
 getICIDforFun = function(fun_name)paste0(fun_name,"_",getFunArgNames(fun_name))
 
-getOutputUsingFun = function(fun_name,input){
+getOutputUsingFun = function(fun_name,input,...){
   unm = getICIDforFun(fun_name)
   fnm = getFunArgNames(fun_name)
+  if(input$study_type=="Classification")unm=unm[!unm=="nclOutTab_direction"]
   ii = getNumericInputs(unm, input)  
   vals = reactiveValues()
   for(k in fnm)vals[[k]]=ii[[paste0(fun_name,"_",k)]]
-  txt = paste0(fun_name,paste0("(",paste(paste(fnm,reactiveValuesToList(vals),sep="="),collapse=" , "),")"))
-#print(paste0(fun_name,paste0("(",paste(paste(fnm,reactiveValuesToList(vals),sep="="),collapse=" , "),")")))
-#print(paste(reactiveValuesToList(vals)))
-#print(lapply(vals,identity))
-#print(ii)
-#print(names(ii))
-#for(k in names(ii))print(ii[[k]])
-#for(k in fnm){vals[[k]]=ii[[paste0(fun_name,"_",k)]];print(vals[[k]])}
-#print(vals)
-#print(names(vals))
-#for(k in names(vals))print(vals[[k]])
-#print(isolate(paste(vals)))
+  vals = reactiveValuesToList(vals)
+  if(input$study_type=="Classification")vals$direction=paste0("'",input$nclOutTab_direction,"'")
+  aLst = list(...)
+  if("expandForPlot" %in% names(aLst)){
+    k = aLst$expandForPlot
+    vals[[k]] = seq(min(vals[[k]]),max(vals[[k]]),length.out=aLst$x_gran)
+  }
+  txt = paste0(fun_name,paste0("(",paste(paste(fnm,vals,sep="="),collapse=" , "),")"))
   eval(parse(text=txt))
 }
 
@@ -91,30 +88,24 @@ getOutputUsingFun = function(fun_name,input){
 makeOutputTable = function(input){
   if(input$study_type == "Estimation"){
     if(input$calc_type == "Sample size"){
-#      i = getNumericInputs(nm_Est_n(), input)
-#      val = nOutTab(i$d,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
       val = getOutputUsingFun("nOutTab",input)
     }
     if(input$calc_type == "Half-width CI"){
-      i = getNumericInputs(nm_Est_d(), input)
-      val = dOutput(i$n,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstd)
+      val = getOutputUsingFun("dOutput",input)
     }
   }
   if(input$study_type == "Classification"){
     if(TRUE){
-      i = getNumericInputs(nm_Cla_1(), input)
-      val = nclOutTab(i$P0,i$delta,i$alphaCla,i$betaCla,input$direction,i$m,i$icc,i$cv,i$r)[[1]]
+      val = getOutputUsingFun("nclOutTab",input)
     }
   }
   if(input$study_type == "Comparison"){
     if(TRUE){
       if(input$calc_type_Com == "2 Group, 2-Sided"){
-        i = getNumericInputs(nm_Com_2(), input)
-        val = ESS_2Grp_2sided(i$P1,i$deltaCo,i$alphaCom2,i$betaCom2,i$ssr)
+        val = getOutputUsingFun("ESS_2Grp_2Sided",input)
       }
       if(input$calc_type_Com == "1 Group, 1-Sided"){
-        i = getNumericInputs(nm_Com_1(), input)
-        val = ESS_1Grp_1sided(i$PA,i$PB,i$alphaCom1,i$betaCom1,i$essa)
+        val = getOutputUsingFun("ESS_1Grp_1Sided",input)
       }
     }
   }
@@ -145,14 +136,14 @@ server <- function(input, output, session) {
       input$study_type,
         "Estimation"=switch(
           input$calc_type,
-            "Sample size"=getICIDforFun("nOutTab"),#nm_Est_n(),
-            "Half-width CI"=nm_Est_d()
+            "Sample size"=getICIDforFun("nOutTab"),
+            "Half-width CI"=getICIDforFun("dOutput")
         ),
-        "Classification"=nm_Cla_1(),
+        "Classification"=getICIDforFun("nclOutTab")[!getICIDforFun("nclOutTab")=="nclOutTab_direction"],
         "Comparison"=switch(
           input$calc_type_Com,
-            "2 Group, 2-Sided"=nm_Com_2(),
-            "1 Group, 1-Sided"=nm_Com_1()
+            "2 Group, 2-Sided"=getICIDforFun("ESS_2Grp_2Sided"),
+            "1 Group, 1-Sided"=getICIDforFun("ESS_1Grp_1Sided")
           )
     )
   })
@@ -180,9 +171,7 @@ server <- function(input, output, session) {
   x_gran = 10
 
   output$plot1 = renderPlot({
-    i = getNumericInputs(nm_Est_n(), input)
-    i$dLst = seq(min(i$d),max(i$d),length.out=x_gran)
-    dat = nOutTab(i$dLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstn)
+    dat = getOutputUsingFun("nOutTab",input,expandForPlot="d",x_gran=x_gran)
     dat$p = as.factor(dat$p)
     ggplot2::ggplot(dat, ggplot2::aes(x = d, y = dat[,"n(ess,deff,inf)"], color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
       ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
@@ -190,18 +179,14 @@ server <- function(input, output, session) {
       ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
   output$plot2 = renderPlot({
-    i = getNumericInputs(nm_Est_n(), input)
-    i$pLst = seq(min(i$p),max(i$p),length.out=x_gran)
-    dat = nOutTab(i$d,i$pLst,i$m,i$icc,i$cv,i$r,i$alphaEstn)
+    dat = getOutputUsingFun("nOutTab",input,expandForPlot="p",x_gran=x_gran)
     ggplot2::ggplot(dat, ggplot2::aes(x = p, y = dat[,"n(ess,deff,inf)"], color = interaction(d,m,icc,cv,r,alpha), group = interaction(d,m,icc,cv,r,alpha))) +
       ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 
       ggplot2::labs(title = "Sample Size as a function of Expected coverage proportion", y = "Sample Size", x = "Expected coverage proportion") +
       ggplot2::theme_minimal() + ggplot2::theme(legend.position="bottom")
   })
   output$plot = renderPlot({
-    i = getNumericInputs(nm_Est_d(), input)
-    i$nLst = seq(min(i$n),max(i$n),length.out=x_gran)
-    dat = dOutput(i$nLst,i$p,i$m,i$icc,i$cv,i$r,i$alphaEstd)
+    dat = getOutputUsingFun("dOutput",input,expandForPlot="n",x_gran=x_gran)
     dat$p = as.factor(dat$p)
     ggplot2::ggplot(dat, ggplot2::aes(x = n, y = d, color = interaction(p,m,icc,cv,r,alpha), group = interaction(p,m,icc,cv,r,alpha))) +
       ggplot2::geom_line(size = 1) + ggplot2::geom_point() + 

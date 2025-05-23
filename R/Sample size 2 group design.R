@@ -19,7 +19,7 @@
 #          (i.e., how many times SS in group2 over group 1),default=1.0
 ################################################################################
 
-ESS_2Grp_2sided<-function(P1, Delta, Alpha=0.05, Beta=0.20,SS_ratio=1.0){
+ESS_2Grp_2Sided<-function(P1, Delta, Alpha=0.05, Beta=0.20,SS_ratio=1.0){
 #Exception handling:check the input parameters, print the error message and exit the function
   if((P1<0|P1>1 )|(Delta<0|Delta>1)|(Alpha<0|Alpha>1)|(Beta<0|Beta>1)|SS_ratio<0)
   stop("P1, Delta, Alpha, Beta must be between 0 and 1, SS Ratio must be greater than 0")  
@@ -40,26 +40,26 @@ n1_with_cc=(n1_no_cc/4.0)*(1.0+sqrt(1.0+(2*(SS_ratio+1))/(n1_no_cc*SS_ratio*abs(
 n2_with_cc=SS_ratio*n1_with_cc  
 
 # Print out the results
-print("###################################################")
-print("Input parameters")
-print(paste("P1=", P1,",", "Delta=", Delta,",", "P2=P1+Delta=", P2,",",
-          "Alpha=", Alpha,",", "Beta=", Beta))
+#print("###################################################")
+#print("Input parameters")
+#print(paste("P1=", P1,",", "Delta=", Delta,",", "P2=P1+Delta=", P2,",",
+#          "Alpha=", Alpha,",", "Beta=", Beta))
 
 ESS1=ceiling(n1_with_cc)
 ESS2=ceiling(n2_with_cc)
-print("###################################################")
-print("ESS for group 1(Table B-4):")
-print(ESS1)
-print("Sample Size ratio(i.e.,how many times ESS in group 2 vs group 1):")
-print(SS_ratio)
-print("ESS for group 2:")
-print(ESS2)
-print("###################################################")
+#print("###################################################")
+#print("ESS for group 1(Table B-4):")
+#print(ESS1)
+#print("Sample Size ratio(i.e.,how many times ESS in group 2 vs group 1):")
+#print(SS_ratio)
+#print("ESS for group 2:")
+#print(ESS2)
+#print("###################################################")
 #Return ESS1 and ESS2 in the list, and can be retrieved for the other calculations 
 return(list(ESS1,ESS2))
 }
 
-ESS_2Grp_2sided(0.5,0.10,0.10,0.2,1.1)
+#ESS_2Grp_2Sided(0.5,0.10,0.10,0.2,1.1)
 
 
 
@@ -87,7 +87,7 @@ ESS_2Grp_2sided(0.5,0.10,0.10,0.2,1.1)
 # ESS1: Effective sample size from early conducted survey
 ################################################################################
 
-ESS_1Grp_1sided<-function(P1, P2, Alpha=0.05, Beta=0.20,ESS1){
+ESS_1Grp_1Sided<-function(P1, P2, Alpha=0.05, Beta=0.20,ESS1){
   #Exception handling:check the input parameters, print the error message and exit the function
   if((P1<0|P1>1 )|(P2<0|P2>1)|(Alpha<0|Alpha>1)|(Beta<0|Beta>1)|P2<P1)
     stop("P1,P2, Delta, Alpha, Beta must be between 0 and 1, P1 must be less than P2")  
@@ -106,32 +106,32 @@ ESS_1Grp_1sided<-function(P1, P2, Alpha=0.05, Beta=0.20,ESS1){
   
   # Equation B3-9
   SS_ratio=n_with_cc/(2*ESS1-n_with_cc)
-  print ("Sample Size Ratio=")
-  print(SS_ratio)
+#  print ("Sample Size Ratio=")
+#  print(SS_ratio)
   if(SS_ratio<0) stop("No positive sample size ratio exists and the study as planned should be abandoned")
   
   # Equation B3-10
   if(SS_ratio>0) n2_with_cc=SS_ratio*ESS1
   
   # Print out the results
-  print("###################################################")
-  print("Input parameters")
-  print(paste("P1=", P1,",", "p2=", P2,",","Alpha=", Alpha,",", "Beta=", 
-              Beta,",", "ESS1=", ESS1))
-  
+# print("###################################################")
+# print("Input parameters")
+# print(paste("P1=", P1,",", "p2=", P2,",","Alpha=", Alpha,",", "Beta=", 
+#             Beta,",", "ESS1=", ESS1))
+# 
   ESS2=ceiling(n2_with_cc)
   
-  print("###################################################")
-  print("ESS for group 1:")
-  print(ESS1)
-  print("Sample Size ratio(i.e.,how many times ESS in group 2 vs known sample size in group 1):")
-  print(SS_ratio)
-  print("ESS for group 2:")
-  print(ESS2)
-  print("###################################################")
+#  print("###################################################")
+#  print("ESS for group 1:")
+#  print(ESS1)
+#  print("Sample Size ratio(i.e.,how many times ESS in group 2 vs known sample size in group 1):")
+#  print(SS_ratio)
+#  print("ESS for group 2:")
+#  print(ESS2)
+#  print("###################################################")
   #Return ESS2  
   return(ESS2)
 }
 
-ESS_1Grp_1sided(0.7,0.8,0.05,0.2,174)
+#ESS_1Grp_1Sided(0.7,0.8,0.05,0.2,174)
 
