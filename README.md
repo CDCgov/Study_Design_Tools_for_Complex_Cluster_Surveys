@@ -9,12 +9,12 @@ The web app version can be found here: https://cdcgov.github.io/Study_Design_Too
 - [x] Initial R code from project(s)
 - [x] Create initial documentation in Readme file, with math
 - [x] Generalize R code to not be project-specific
-- [ ] R
-  - [ ] Create standard output format
-  - [ ] Create an initial R Shiny App
+- [x] R
+  - [x] Create standard output format
+  - [x] Create an initial R Shiny App
 - [ ] Python
   - [x] Initial Python code, converted from R code
-  - [ ] Create standard output format
+  - [x] Create standard output format
   - [ ] Create an initial Shiny for Phython App
 
 
